@@ -1,4 +1,5 @@
 import numpy as np
+import sklearn.metrics as metric
 
 
 class MLP(object):
@@ -9,7 +10,7 @@ class MLP(object):
         return 1 / (1 + np.exp(-x))
 
     @staticmethod
-    def tahn(x, derive=False):
+    def tanh(x, derive=False):
         if derive:
             return 1. - x * x
         return np.tanh(x)
@@ -20,108 +21,102 @@ class MLP(object):
             return 1. * (x > 0)
         return x * (x > 0)
 
-    # TODO
     @staticmethod
-    def leaky_relu(x, derive=False):
-        if derive:
-            if x > 0:
-                return 1. * (x > 0)
-            else:
-                return 0.01 * (x <= 0)
-        else:
-            if x > 0:
-                return x
-            else:
-                return 0.01*x
+    def softmax(x):
+        exp_scores = np.exp(x)
+        return exp_scores/exp_scores.sum(axis=1, keepdims=True)
 
     @staticmethod
-    def forward(x, w, g):
-        a = [g(np.dot(x, w[0]))]
-        for i in range(1, len(w)):
-            a.append(g(np.dot(a[i-1], w[i])))
+    def stable_softmax(x):
+        exps = np.exp(x - np.max(x))
+        return exps / np.sum(exps)
+
+    @staticmethod
+    def forward(x, w, b, g):
+        n = len(w)
+        a = [g(np.dot(x, w[0]) + b[0])]
+        for i in range(1, n-1):
+            a.append(g(np.dot(a[i-1], w[i]) + b[i]))
+        a.append(MLP.softmax(np.dot(a[n-2], w[n-1] + b[n-1])))
         return a
 
     @staticmethod
-    def backward(x, y, a, w, g):
+    def backward(y, a, w, g):
         n = len(w)
         delta = []
         for i in range(0, n):
             delta.append([])
 
-        delta_a_o_error = a[n-1] - y
-        delta_z_o = g(a[n-1], derive=True)
-        multiply = delta_a_o_error * delta_z_o
-        delta[n-1] = np.dot(a[n-2].T, multiply)
-        for i in range(n-2, 0, -1):
-            delta_a_h = np.dot(multiply, w[i+1].T)
-            delta_z_h = MLP.sigmoid(a[i], derive=True)
-            multiply = delta_a_h * delta_z_h
-            delta[i] = np.dot(a[i-1].T, multiply)
-
-        delta_a_h = np.dot(multiply, w[1].T)
-        delta_z_h = g(a[0], derive=True)
-        delta[0] = np.dot(x.T, delta_a_h * delta_z_h)
+        delta[n-1] = a[n-1] - y
+        for i in range(n-2, -1, -1):
+            delta[i] = (delta[i+1]).dot(w[i+1].T) * g(a[i], derive=True)
 
         return delta
 
     @staticmethod
-    def update(w, delta, eta):
-        w[0] = w[0] - eta * delta[0]
-        for i in range(1, len(w)):
-            w[i] = w[i] - eta * delta[i]
+    def update(x, w, b, a, delta, eta):
+        m = x.shape[0]
+        c = 1./float(m)
+        n = len(w)
+        for i in range(n-1, 0, -1):
+            w[i] += -eta * c * a[i-1].T.dot(delta[i])
+            b[i] += -eta * c * (delta[i]).sum(axis=0)
+        w[0] += -eta * c * x.T.dot(delta[0])
+        b[0] += -eta * c * (delta[0]).sum(axis=0)
+
+    @staticmethod
+    def predict(x, model):
+        a = MLP.forward(x, model['w'], model['b'], model['activation'])
+        return np.argmax(a[len(a)-1], axis=1)
 
     @staticmethod
     def build_model(x, y, layers, activation, epsilon, eta, epochs):
 
-        # Add bias to input (x0)
-        layers[0] += 1
-        X = np.ones((x.shape[0], x.shape[1] + 1))
-        X[:, :-1] = x
-
-        # Reshape the label
-        Y = y.reshape((y.shape[0], 1))
+        # One-hot coding
+        Y = np.zeros((x.shape[0], layers[len(layers)-1]))
+        for i in range(x.shape[0]):
+            Y[i, y[i]] = 1
 
         # Set activation function
         g = None
-        if activation == 'sigmoid':
+        if activation == 'logistic':
             g = MLP.sigmoid
-        elif activation == 'tahn':
-            g = MLP.tahn
+        elif activation == 'tanh':
+            g = MLP.tanh
         elif activation == 'relu':
             g = MLP.relu
-        elif activation == 'leaky-relu':
-            g = MLP.leaky_relu
 
         w = []
+        b = []
+        cost = []
         model = {}
         n_layers = len(layers)
 
         # Initialize the weights with random numbers
         for i in range(0, n_layers-1):
             w.append(np.random.randn(layers[i], layers[i+1]) * (2 * epsilon) - epsilon)
+            b.append(np.random.randn(1, layers[i+1]) * (2 * epsilon) - epsilon)
 
         # For each epoch
         for epoch in range(epochs):
 
             # Feed forward
-            a = MLP.forward(X, w, g)
+            a = MLP.forward(x, w, b, g)
 
-            # Calculate the error
-            loss = np.mean(0.5 * np.power((a[1] - Y), 2))
-            print('Epoch: %d' % (epoch+1), 'Loss: %f' % loss)
+            # Compute the loss
+            loss = metric.log_loss(Y, a[len(a)-1])
+            cost.append(loss)
+            print('Epoch: %d' % (epoch + 1), 'Loss: %f' % loss)
 
             # Backpropagation
-            delta = MLP.backward(X, Y, a, w, g)
+            delta = MLP.backward(Y, a, w, g)
 
             # Update the weights
-            MLP.update(w, delta, eta)
+            MLP.update(x, w, b, a, delta, eta)
 
         model['w'] = w
+        model['b'] = b
+        model['cost'] = cost
         model['activation'] = g
-
-        print('Coefficients: ', model['w'])
-
-        #a = MLP.forward(X, w, g)
-        #print(a[len(w)-1])
 
         return model
