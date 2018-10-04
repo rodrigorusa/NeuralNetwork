@@ -5,17 +5,17 @@ Neural Network Python implementation
 
 Assure if your PC had all of these libs:
 
-pandas / matplotlib / numpy / scipy / scikit-learn / python-tk / python 2.7 or superior
+pandas / matplotlib / numpy / scipy / scikit-learn / python-tk / python 3.3 or superior
 
 ### To compile:
 
 On NeuralNetwork folder:
 
-python -m py_compile methods/*.py main.py
+python3 -m py_compile methods/*.py main.py
 
 ### To execute:
 
-python main.py
+python3 main.py
 
 **usage:** main.py [-h] [-training TRAINING_PATH] [-test TEST_PATH]
 
