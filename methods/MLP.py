@@ -104,7 +104,7 @@ class MLP(object):
             a = MLP.forward(x, w, b, g)
 
             # Compute the loss
-            loss = metric.log_loss(Y, a[len(a)-1])
+            loss = -1.0/float(x.shape[0])*np.sum(Y*np.log(a[len(a)-1]) + (1-Y)*np.log(1-a[len(a)-1]))
             cost.append(loss)
             print('Epoch: %d' % (epoch + 1), 'Loss: %f' % loss)
 
