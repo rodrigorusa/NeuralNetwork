@@ -1,5 +1,6 @@
 import argparse
 import pandas as pd
+import seaborn as sn
 from sklearn import neural_network
 from sklearn.metrics import confusion_matrix
 import sklearn.metrics as metric
@@ -98,13 +99,21 @@ def multilayer_perceptron(train_input, train_label, val_input, val_label, test_i
     print('Validation:')
     y_pred = MLP.predict(val_input, model)
 
-    # Plot accuracy
+    # Plot metrics
     accuracy = metric.accuracy_score(np.array(val_label).flatten(), np.array(y_pred).flatten(), normalize=True)
     print('- Accuracy: ', accuracy)  # show accuracy score
-    print('- Recall: ', metric.recall_score(val_label, y_pred, average='micro'))    # show recall
-    print('- F1-score: ', metric.f1_score(val_label, y_pred, average='micro'))  # show F1 score
-    print('- Confusion matrix: ')
-    print(confusion_matrix(val_label, y_pred))  # show confusion matrix
+    print('- Precision: ', metric.precision_score(val_label, y_pred, average='macro'))  # show precision
+    print('- Recall: ', metric.recall_score(val_label, y_pred, average='macro'))    # show recall
+    print('- F1-score: ', metric.f1_score(val_label, y_pred, average='macro'))  # show F1 score
+
+    # Plot Confusion matrix
+    cm = confusion_matrix(val_label, y_pred)
+    cm = cm.astype('float')/cm.sum(axis=1)[:, np.newaxis]   # normalize
+    df_cm = pd.DataFrame(cm, index=[i for i in "0123456789"], columns=[i for i in "0123456789"])
+    fig = plt.figure(figsize=(10, 7))
+    sn.heatmap(df_cm, annot=True)
+    plt.show()
+    fig.savefig('cm_validation.png')
 
     val = input('Predict Test Set: (default: "no"): ')
     test = 'no'
@@ -116,13 +125,21 @@ def multilayer_perceptron(train_input, train_label, val_input, val_label, test_i
         print('Test:')
         y_pred = MLP.predict(test_input, model)
 
-        # Plot accuracy
+        # Plot metrics
         accuracy = metric.accuracy_score(np.array(test_label).flatten(), np.array(y_pred).flatten(), normalize=True)
         print('- Accuracy: ', accuracy)  # show accuracy score
-        print('- Recall: ', metric.recall_score(test_label, y_pred, average='micro'))  # show recall
-        print('- F1-score: ', metric.f1_score(test_label, y_pred, average='micro'))  # show F1 score
-        print('- Confusion matrix: ')
-        print(confusion_matrix(test_label, y_pred)) # show confusion matrix
+        print('- Precision: ', metric.precision_score(test_label, y_pred, average='macro'))  # show precision
+        print('- Recall: ', metric.recall_score(test_label, y_pred, average='macro'))  # show recall
+        print('- F1-score: ', metric.f1_score(test_label, y_pred, average='macro'))  # show F1 score
+
+        # Plot Confusion matrix
+        cm = confusion_matrix(test_label, y_pred)
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]  # normalize
+        df_cm = pd.DataFrame(cm, index=[i for i in "0123456789"], columns=[i for i in "0123456789"])
+        fig = plt.figure(figsize=(10, 7))
+        sn.heatmap(df_cm, annot=True)
+        plt.show()
+        fig.savefig('cm_test.png')
 
 
 def scikit_multilayer_perceptron(train_input, train_label, val_input, val_label, test_input, test_label):
@@ -147,13 +164,21 @@ def scikit_multilayer_perceptron(train_input, train_label, val_input, val_label,
     print('Validation:')
     y_pred = model.predict(val_input)
 
-    # Plot accuracy
+    # Plot metrics
     accuracy = metric.accuracy_score(np.array(val_label).flatten(), np.array(y_pred).flatten(), normalize=True)
     print('- Accuracy: ', accuracy)  # show accuracy score
-    print('- Recall: ', metric.recall_score(val_label, y_pred, average='micro'))  # show recall
-    print('- F1-score: ', metric.f1_score(val_label, y_pred, average='micro'))  # show F1 score
-    print('- Confusion matrix:')
-    print(confusion_matrix(val_label, y_pred))  # show confusion matrix
+    print('- Precision: ', metric.precision_score(val_label, y_pred, average='macro'))  # show precision
+    print('- Recall: ', metric.recall_score(val_label, y_pred, average='macro'))  # show recall
+    print('- F1-score: ', metric.f1_score(val_label, y_pred, average='macro'))  # show F1 score
+
+    # Plot Confusion matrix
+    cm = confusion_matrix(val_label, y_pred)
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]  # normalize
+    df_cm = pd.DataFrame(cm, index=[i for i in "0123456789"], columns=[i for i in "0123456789"])
+    fig = plt.figure(figsize=(10, 7))
+    sn.heatmap(df_cm, annot=True)
+    plt.show()
+    fig.savefig('cm_validation.png')
 
     val = input('Predict Test Set: (default: "no"): ')
     test = 'no'
@@ -167,11 +192,19 @@ def scikit_multilayer_perceptron(train_input, train_label, val_input, val_label,
 
         # Plot accuracy
         accuracy = metric.accuracy_score(np.array(test_label).flatten(), np.array(y_pred).flatten(), normalize=True)
-        print('- Accuracy=', accuracy)  # show accuracy score
-        print('- Recall: ', metric.recall_score(test_label, y_pred, average='micro'))  # show recall
-        print('- F1-score: ', metric.f1_score(test_label, y_pred, average='micro'))  # show F1 score
-        print('- Confusion matrix:')
-        print(confusion_matrix(test_label, y_pred))  # show confusion matrix
+        print('- Accuracy: ', accuracy)  # show accuracy score
+        print('- Precision: ', metric.precision_score(test_label, y_pred, average='macro'))  # show precision
+        print('- Recall: ', metric.recall_score(test_label, y_pred, average='macro'))  # show recall
+        print('- F1-score: ', metric.f1_score(test_label, y_pred, average='macro'))  # show F1 score
+
+        # Plot Confusion matrix
+        cm = confusion_matrix(test_label, y_pred)
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]  # normalize
+        df_cm = pd.DataFrame(cm, index=[i for i in "0123456789"], columns=[i for i in "0123456789"])
+        fig = plt.figure(figsize=(10, 7))
+        sn.heatmap(df_cm, annot=True)
+        plt.show()
+        fig.savefig('cm_test.png')
 
 
 def init_dataset(training_path, test_path):
